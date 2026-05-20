@@ -1,0 +1,86 @@
+#define BLYNK_TEMPLATE_ID "Masukkan_Template_ID"
+#define BLYNK_TEMPLATE_NAME "Ultrasonik Servo"
+#define BLYNK_AUTH_TOKEN "Masukkan_Auth_Token"
+
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include <Servo.h>
+
+// WiFi
+char ssid[] = "Nama_WiFi";
+char pass[] = "Password_WiFi";
+
+// Pin Ultrasonik
+#define TRIG_PIN D5
+#define ECHO_PIN D6
+
+// Pin Servo
+#define SERVO_PIN D4
+
+Servo myServo;
+BlynkTimer timer;
+
+long duration;
+int distance;
+
+// Fungsi baca sensor
+void sendSensor()
+{
+  // Trigger ultrasonik
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+
+  digitalWrite(TRIG_PIN, LOW);
+
+  // Membaca echo
+  duration = pulseIn(ECHO_PIN, HIGH);
+
+  // Menghitung jarak
+  distance = duration * 0.034 / 2;
+
+  Serial.print("Jarak: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // Kirim ke Blynk
+  Blynk.virtualWrite(V0, distance);
+
+  // Kondisi servo
+  if (distance <= 10)
+  {
+    myServo.write(90);
+
+    Blynk.virtualWrite(V1, 1);
+  }
+  else
+  {
+    myServo.write(0);
+
+    Blynk.virtualWrite(V1, 0);
+  }
+}
+
+void setup()
+{
+  Serial.begin(9600);
+
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  myServo.attach(SERVO_PIN);
+  myServo.write(0);
+
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+
+  // Update tiap 1 detik
+  timer.setInterval(1000L, sendSensor);
+}
+
+void loop()
+{
+  Blynk.run();
+  timer.run();
+}
